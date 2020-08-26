@@ -8,7 +8,7 @@ public class City extends LitePalSupport {
     private String cityName;
     //市代号
     private int cityCode;
-    //所属省id
+    //所属省 id（相当于父 id）
     private int provinceId;
 
     public int getId() {
