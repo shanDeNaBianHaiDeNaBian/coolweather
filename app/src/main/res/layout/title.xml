@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="?attr/actionBarSize">
-
+    <!--侧滑菜单按钮-->
     <Button
         android:id="@+id/nav_button"
         android:layout_width="30dp"

@@ -2,6 +2,7 @@ package com.coolweather.android;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
@@ -26,6 +27,7 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.coolweather.android.gson.Forecast;
 import com.coolweather.android.gson.Weather;
+import com.coolweather.android.service.AutoUpdateService;
 import com.coolweather.android.util.HttpUtil;
 import com.coolweather.android.util.Utility;
 import com.google.gson.Gson;
@@ -245,69 +247,79 @@ public class WeatherActivity extends AppCompatActivity {
      * 处理并展示实体类 Weather 中的数据
      */
     private void showWeatherInfo(Weather weather) {
-        //获取 weather 实例中 basic 的 cityName
-        String cityName = weather.basic.cityName;
-        //获取 weather 实例中 basic 的 update 的 updateTime 值，因为是 2020-08-26 16:46
-        // 这种格式，这里用具体时间就行了，所以分割成数组，取第 1 个值就具体时间了
-        String updateTime = weather.basic.update.updateTime.split(" ")[1];
-        //获取 weather 实例中 now 的 temperature
-        String degree = weather.now.temperature + "℃";
-        //获取 weather 实例中 now 的 more 的 info
-        String weatherInfo = weather.now.more.info;
+        if (weather != null && "ok".equals(weather.status)) {
 
-        //设置标题城市名称
-        titleCity.setText(cityName);
-        //设置标题天气更新时间
-        titleUpdateTime.setText(updateTime);
-        //设置温度
-        degreeText.setText(degree);
-        //设置天气状况
-        weatherInfoText.setText(weatherInfo);
+            //获取 weather 实例中 basic 的 cityName
+            String cityName = weather.basic.cityName;
+            //获取 weather 实例中 basic 的 update 的 updateTime 值，因为是 2020-08-26 16:46
+            // 这种格式，这里用具体时间就行了，所以分割成数组，取第 1 个值就具体时间了
+            String updateTime = weather.basic.update.updateTime.split(" ")[1];
+            //获取 weather 实例中 now 的 temperature
+            String degree = weather.now.temperature + "℃";
+            //获取 weather 实例中 now 的 more 的 info
+            String weatherInfo = weather.now.more.info;
 
-        //因为未来 6 天天气数据是集合列表所以先把 forecastLayout 布局中的所有子布局全部移除，防止累计追加
-        forecastLayout.removeAllViews();
-        //遍历 weather 中的 forecastList 集合
-        for (Forecast forecast : weather.forecastList) {
-            //引用 R.layout.forecast_item 子布局创建布局 view 对象
-            View view = LayoutInflater.from(this).inflate(R.layout.forecast_item, forecastLayout,
-                    false);
-            //获取 forecast_item 里面的子布局
-            //未来日期
-            TextView dateText = view.findViewById(R.id.date_text);
-            //天气状况
-            TextView infoText = view.findViewById(R.id.info_text);
-            //最高温度
-            TextView maxText = view.findViewById(R.id.max_text);
-            //最低温度
-            TextView minText = view.findViewById(R.id.min_text);
+            //设置标题城市名称
+            titleCity.setText(cityName);
+            //设置标题天气更新时间
+            titleUpdateTime.setText(updateTime);
+            //设置温度
+            degreeText.setText(degree);
+            //设置天气状况
+            weatherInfoText.setText(weatherInfo);
 
-            //设置对应的数据
-            dateText.setText(forecast.date);
-            infoText.setText(forecast.more.info);
-            maxText.setText(forecast.temperature.max);
-            minText.setText(forecast.temperature.min);
+            //因为未来 6 天天气数据是集合列表所以先把 forecastLayout 布局中的所有子布局全部移除，防止累计追加
+            forecastLayout.removeAllViews();
+            //遍历 weather 中的 forecastList 集合
+            for (Forecast forecast : weather.forecastList) {
+                //引用 R.layout.forecast_item 子布局创建布局 view 对象
+                View view = LayoutInflater.from(this).inflate(R.layout.forecast_item,
+                        forecastLayout,
+                        false);
+                //获取 forecast_item 里面的子布局
+                //未来日期
+                TextView dateText = view.findViewById(R.id.date_text);
+                //天气状况
+                TextView infoText = view.findViewById(R.id.info_text);
+                //最高温度
+                TextView maxText = view.findViewById(R.id.max_text);
+                //最低温度
+                TextView minText = view.findViewById(R.id.min_text);
 
-            //追加到布局中
-            forecastLayout.addView(view);
+                //设置对应的数据
+                dateText.setText(forecast.date);
+                infoText.setText(forecast.more.info);
+                maxText.setText(forecast.temperature.max);
+                minText.setText(forecast.temperature.min);
+
+                //追加到布局中
+                forecastLayout.addView(view);
+            }
+
+            //如果空气质量有值
+            if (weather.aqi != null) {
+                aqiText.setText(weather.aqi.city.aqi);
+                pm25Text.setText(weather.aqi.city.pm25);
+            }
+
+            //设置。。。
+            String comfort = "舒适度：" + weather.suggestion.comfort.info;
+            comfortText.setText(comfort);
+
+            String carWash = "洗车指数：" + weather.suggestion.carWash.info;
+            carWashText.setText(carWash);
+
+            String sport = "运动建议：" + weather.suggestion.sport.info;
+            sportText.setText(sport);
+
+            //最后设置父总局可见
+            weatherLayout.setVisibility(View.VISIBLE);
+
+            //启动服务，用于定时长期在后台更新天气数据到缓存
+            Intent intent = new Intent(this, AutoUpdateService.class);
+            startService(intent);
+        } else {
+            Toast.makeText(WeatherActivity.this, "获取天气信息失败！", Toast.LENGTH_LONG).show();
         }
-
-        //如果空气质量有值
-        if (weather.aqi != null) {
-            aqiText.setText(weather.aqi.city.aqi);
-            pm25Text.setText(weather.aqi.city.pm25);
-        }
-
-        //设置。。。
-        String comfort = "舒适度：" + weather.suggestion.comfort.info;
-        comfortText.setText(comfort);
-
-        String carWash = "洗车指数：" + weather.suggestion.carWash.info;
-        carWashText.setText(carWash);
-
-        String sport = "运动建议：" + weather.suggestion.sport.info;
-        sportText.setText(sport);
-
-        //最后设置父总局可见
-        weatherLayout.setVisibility(View.VISIBLE);
     }
 }
