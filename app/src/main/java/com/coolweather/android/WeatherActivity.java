@@ -322,4 +322,10 @@ public class WeatherActivity extends AppCompatActivity {
             Toast.makeText(WeatherActivity.this, "获取天气信息失败！", Toast.LENGTH_LONG).show();
         }
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume: ");
+    }
 }
